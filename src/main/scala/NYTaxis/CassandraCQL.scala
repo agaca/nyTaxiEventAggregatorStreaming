@@ -1,6 +1,8 @@
 package NYTaxis
 
 import java.sql.Timestamp
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 import com.datastax.driver.core.Session
 
@@ -12,68 +14,37 @@ object CassandraCQL {
       "= {'class':'SimpleStrategy', 'replication_factor':1};")
 
     session.execute(
-      "CREATE TABLE if not exists NYTaxiEvents.trips_bydistance (" +
-        "trips_distance DOUBLE," +
-        "tripsCount INT," +
-        "ts TIMESTAMP," +
-        "PRIMARY KEY (trips_distance, ts)" +
-        ") WITH CLUSTERING ORDER BY (ts DESC);")
-
-    session.execute(
-      "CREATE TABLE if not exists NYTaxiEvents.trips_bypayment_mode (" +
+      "CREATE TABLE if not exists NYTaxiEvents.trips_bytime (" +
         "most_used_payment INT," +
-        "tripsCount INT," +
-        "ts TIMESTAMP," +
-        "PRIMARY KEY (most_used_payment, ts)" +
-        ") WITH CLUSTERING ORDER BY (ts DESC);")
-
-    session.execute(
-      "CREATE TABLE if not exists NYTaxiEvents.trips_bypayment_amount (" +
+        "trips_distance DOUBLE," +
         "trips_paymentamount DOUBLE," +
-        "tripsCount INT," +
-        "ts TIMESTAMP," +
-        "PRIMARY KEY (trips_paymentamount, ts)" +
-        ") WITH CLUSTERING ORDER BY (ts DESC);")
-
-    session.execute(
-      "CREATE TABLE if not exists NYTaxiEvents.trips_bypassenger_number (" +
         "passenger_number BIGINT," +
         "tripsCount INT," +
         "ts TIMESTAMP," +
-        "PRIMARY KEY (passenger_number, ts)" +
-        ") WITH CLUSTERING ORDER BY (ts DESC);")
+        "monthyear INT," +
+        "PRIMARY KEY ((monthyear,ts),tripsCount)" +
+        ") WITH CLUSTERING ORDER BY (tripsCount DESC);")
 
   }
 
   def insert (session: Session, most_used_payment: Int, trips_distance: Double, trips_paymentamount: Double,
               passenger_number: Long, tripsCount: Long, ts: Timestamp) = {
 
-    session.execute(
-      "INSERT INTO NYTaxiEvents.trips_bydistance (trips_distance, tripsCount, ts) " +
-        "VALUES (" +
-        trips_distance + "," +
-        tripsCount + "," +
-        ts.getTime + ");")
+    val tsFormater = DateTimeFormatter.ofPattern("yyyy-MM-dd' 'HH:mm:ss.S")
+    val dateFromTs = LocalDate.parse(ts.toString, tsFormater)
+    val monthYear= {dateFromTs.getMonthValue.toString + dateFromTs.getYear.toString}.trim.toInt
 
     session.execute(
-      "INSERT INTO NYTaxiEvents.trips_bypayment_mode(most_used_payment, tripsCount, ts) " +
+      "INSERT INTO NYTaxiEvents.trips_bytime (most_used_payment, trips_distance, trips_paymentamount, " +
+        "passenger_number, tripsCount, ts, monthyear) " +
         "VALUES (" +
         most_used_payment + "," +
-        tripsCount + "," +
-        ts.getTime + ");")
-
-    session.execute(
-      "INSERT INTO NYTaxiEvents.trips_bypayment_amount (trips_paymentamount, tripsCount, ts) " +
-        "VALUES (" +
+        trips_distance + "," +
         trips_paymentamount + "," +
-        tripsCount + "," +
-        ts.getTime + ");")
-
-    session.execute(
-      "INSERT INTO NYTaxiEvents.trips_bypassenger_number (passenger_number, tripsCount, ts) " +
-        "VALUES (" +
         passenger_number + "," +
         tripsCount + "," +
-        ts.getTime + ");")
+        ts.getTime + "," +
+        monthYear + ");")
+
   }
 }
