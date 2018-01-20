@@ -22,8 +22,8 @@ object CassandraCQL {
         "tripsCount INT," +
         "ts TIMESTAMP," +
         "monthyear INT," +
-        "PRIMARY KEY ((monthyear,ts),tripsCount)" +
-        ") WITH CLUSTERING ORDER BY (tripsCount DESC);")
+        "PRIMARY KEY (monthyear,ts,tripsCount)" +
+        ");")
 
   }
 
