@@ -1,12 +1,12 @@
 package NYTaxis
 
-import org.apache.log4j.{Level, Logger}
+import org.apache.log4j.Logger
 import org.apache.spark.sql.SparkSession
+
 
 object NYAnalyticsExtractor extends App {
 
-  Logger.getLogger("org").setLevel(Level.ERROR)
-  Logger.getLogger("akka").setLevel(Level.ERROR)
+  val log = Logger.getLogger("\nPerformance difference")
 
   val spark = SparkSession
     .builder
@@ -28,15 +28,23 @@ object NYAnalyticsExtractor extends App {
     .read
     .parquet("hdfs://10.0.2.15/taxitrips")
 
-  dfRaw.createOrReplaceTempView("rawData")
+  val startRaw=System.nanoTime()
 
-  spark.time(spark.sql("SELECT AVG(trip_distance) FROM rawData " +
-    "WHERE tpep_dropoff_datetime BETWEEN '2017-05-21 20:20:00' AND '2017-05-21 22:10:00'").show())
+  dfRaw.createOrReplaceTempView("rawData")
+  spark.time(spark.sql("SELECT AVG(passenger_count) FROM rawData " +
+    "WHERE tpep_dropoff_datetime BETWEEN '2017-06-01 00:00:00' AND '2017-06-30 23:59:59'").show())
+
+  val finishRawStartOlap=System.nanoTime()
 
   dfOlap.createOrReplaceTempView("olapData")
+  spark.time(spark.sql("SELECT SUM(passenger_number)/SUM(tripsCount) FROM olapData " +
+    "WHERE monthyear=62017 " +
+    "AND ts BETWEEN '2017-06-01 00:00:00' AND '2017-06-30 23:59:59'").show())
 
-  spark.time(spark.sql("SELECT SUM(trips_distance)/SUM(tripsCount) FROM olapData " +
-    "WHERE monthyear=52017 " +
-    "AND ts BETWEEN '2017-05-21 20:20:00' AND '2017-05-21 22:10:00'").show())
+  val finishOlap=System.nanoTime()
+
+  log.info("Olap query is " + (finishRawStartOlap-startRaw)/(finishOlap-finishRawStartOlap) + " times faster than " +
+    "Raw query")
+
 
 }
