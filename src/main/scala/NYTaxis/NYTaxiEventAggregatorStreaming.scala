@@ -19,9 +19,6 @@ case class TaxiTripEvent(year: Int, tpep_pickup_datetime: Timestamp,
 
 object NYTaxiEventAggregatorStreaming extends App {
 
-  Logger.getLogger("org").setLevel(Level.ERROR)
-  Logger.getLogger("akka").setLevel(Level.ERROR)
-
   private val conf = new SparkConf()
     .setAppName("NYTaxiEventStreaming")
     .setMaster("local[*]")
